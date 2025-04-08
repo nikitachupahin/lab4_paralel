@@ -52,6 +52,12 @@ public class Server {
                     case "send matrix":
                         matrixRebuilder = handleSendMatrixCommand(client, matrixSize);
                         break;
+                    case "start processing":
+                        handleStartProcessingCommand(client, matrixSize, threadsAmount, matrixRebuilder, threads);
+                        break;
+                    case "get result":
+                        handleGetResultCommand(client, matrixSize, matrixRebuilder, threads);
+                        break;
                     case "end":
                         System.out.println("Client requested to end connection.");
                         client.shutdownInput();
@@ -78,6 +84,44 @@ public class Server {
             matrix = RequestHandler.getMatrix(client, matrixSize);
             RequestHandler.sendMessage(client, "Matrix was filled");
             return new MatrixRebuilder(matrixSize, matrix);
+        }
+    }
+
+    private void handleStartProcessingCommand(Socket client, int matrixSize, int threadsAmount,
+                                              MatrixRebuilder matrixRebuilder, List<Thread> threads) throws IOException {
+        if (matrixSize <= 0 || threadsAmount <= 0 || matrixRebuilder == null) {
+            RequestHandler.sendMessage(client, "You need to send threads amount, matrix size and matrix to continue work");
+        } else {
+            RequestHandler.sendMessage(client, "Processing started");
+
+            for (int i = 0; i < threadsAmount; i++) {
+                int j = i;
+                threads.add(new Thread(() -> matrixRebuilder.parallelRebuildMatrix(j, threadsAmount)));
+                threads.get(i).start();
+            }
+        }
+    }
+
+    private void handleGetResultCommand(Socket client, int matrixSize, MatrixRebuilder matrixRebuilder,
+                                        List<Thread> threads) throws IOException {
+        if (matrixRebuilder == null) {
+            RequestHandler.sendMessage(client, "You need to start processing to get results and status");
+        } else {
+            float percentResult = 100 * matrixRebuilder.getRebuildCount() /
+                    ((matrixRebuilder.getMatrixSize() * matrixRebuilder.getMatrixSize() - matrixSize) / 2);
+            if (percentResult < 100) {
+                RequestHandler.sendMessage(client, (int) percentResult + "% complete");
+            } else {
+                for (Thread thread : threads) {
+                    try {
+                        thread.join();
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+                }
+                RequestHandler.sendMessage(client, "matrix ready");
+                RequestHandler.sendMatrix(client, matrixRebuilder.getMatrixArray());
+            }
         }
     }
 

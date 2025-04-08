@@ -48,6 +48,14 @@ public class Client {
                 case "send matrix":
                     sendMatrix();
                     break;
+                case "start processing":
+                    RequestHandler.sendMessage(client, "start processing");
+                    System.out.println("Response: " + RequestHandler.getMessage(client));
+                    break;
+                case "get result":
+                    RequestHandler.sendMessage(client, "get result");
+                    getResult();
+                    break;
                 case "end":
                     RequestHandler.sendMessage(client, "end");
                     hasConnection = false;
@@ -103,14 +111,27 @@ public class Client {
         System.out.println("Client send matrix");
         System.out.println("Response: " + RequestHandler.getMessage(client));
     }
-
     private void printAvailableCommands() {
         System.out.println("\nAvailable commands:");
         System.out.println("  send threads amount - Set the number of threads");
         System.out.println("  send matrix size     - Set the size of the matrix");
         System.out.println("  send matrix          - Send generated matrix to server");
+        System.out.println("  start processing     - Trigger matrix processing on server");
+        System.out.println("  get result           - Retrieve processed matrix");
         System.out.println("  end                  - Close connection");
         System.out.println("  help                 - Show commands again\n");
+    }
+
+    private boolean getResult() throws IOException {
+        String condition = RequestHandler.getMessage(client);
+        if ("matrix ready".equals(condition)) {
+            RequestHandler.getMatrix(client, matrixSize);
+            System.out.println("Matrix was received");
+            return true;
+        } else {
+            System.out.println(condition);
+            return false;
+        }
     }
 
     public static void main(String[] args) {
