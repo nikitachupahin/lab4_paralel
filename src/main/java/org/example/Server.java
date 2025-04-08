@@ -3,6 +3,7 @@ package org.example;
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
+import org.example.MatrixRebuilder;
 
 public class Server {
     private ServerSocket serverListener;
@@ -12,7 +13,7 @@ public class Server {
         System.out.println("Server was initialized");
     }
 
-    public void startListening(int serverBacklog) {
+    public void startListening() {
         System.out.println("Server start listening");
         while (true) {
             try {
@@ -28,7 +29,7 @@ public class Server {
         Server server = new Server();
         try {
             server.initialize(8081);
-            server.startListening(100);
+            server.startListening();
         } catch (IOException e) {
             e.printStackTrace();
         }
