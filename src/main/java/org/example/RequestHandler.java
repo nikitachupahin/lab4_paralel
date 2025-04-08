@@ -33,4 +33,39 @@ public class RequestHandler {
         sendMessage(client, val > 0 ? "data were recorded" : message);
         return val;
     }
+
+    public static void sendMatrix(Socket client, int[][] matrix) throws IOException {
+        OutputStream outputStream = client.getOutputStream();
+        ByteBuffer buffer = ByteBuffer.allocate(matrix.length * matrix.length * Integer.BYTES);
+
+        for (int[] row : matrix) {
+            for (int value : row) {
+                buffer.putInt(value);
+            }
+        }
+
+        outputStream.write(buffer.array());
+        outputStream.flush();
+    }
+
+    public static int[][] getMatrix(Socket client, int matrixSize) throws IOException {
+        int[][] matrix = new int[matrixSize][matrixSize];
+        InputStream inputStream = client.getInputStream();
+        byte[] buffer = new byte[matrixSize * matrixSize * Integer.BYTES];
+
+        int bytesRead = 0;
+        while (bytesRead < buffer.length) {
+            int result = inputStream.read(buffer, bytesRead, buffer.length - bytesRead);
+            if (result == -1) throw new IOException("Unexpected end of stream");
+            bytesRead += result;
+        }
+
+        ByteBuffer byteBuffer = ByteBuffer.wrap(buffer);
+        for (int i = 0; i < matrixSize; i++) {
+            for (int j = 0; j < matrixSize; j++) {
+                matrix[i][j] = byteBuffer.getInt();
+            }
+        }
+        return matrix;
+    }
 }

@@ -3,7 +3,8 @@ package org.example;
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
-import org.example.MatrixRebuilder;
+import java.util.ArrayList;
+import java.util.List;
 
 public class Server {
     private ServerSocket serverListener;
@@ -31,19 +32,25 @@ public class Server {
 
     public void handleClient(Socket client) {
         boolean hasConnection = true;
-        int threadsAmount = 0;
+        MatrixRebuilder matrixRebuilder = null;
         int matrixSize = 0;
-        System.out.println("Client connected");
+        List<Thread> threads = new ArrayList<>();
+        int threadsAmount = 0;
+        int clientNumber = this.clientNumber;
 
+        System.out.println("Client " + clientNumber + " connected");
         try {
             while (hasConnection) {
-                String command = RequestHandler.getMessage(client);
-                switch (command) {
+                String clientCommand = RequestHandler.getMessage(client);
+                switch (clientCommand) {
                     case "send threads amount":
                         threadsAmount = RequestHandler.getUnsignedInt(client, "Can not use a negative threads amount");
                         break;
                     case "send matrix size":
                         matrixSize = RequestHandler.getUnsignedInt(client, "Can not use a negative matrix size");
+                        break;
+                    case "send matrix":
+                        matrixRebuilder = handleSendMatrixCommand(client, matrixSize);
                         break;
                     case "end":
                         System.out.println("Client requested to end connection.");
@@ -54,10 +61,23 @@ public class Server {
                         break;
                     default:
                         RequestHandler.sendMessage(client, "Can not understand a command");
+                        break;
                 }
             }
         } catch (IOException e) {
             e.printStackTrace();
+        }
+    }
+
+    private MatrixRebuilder handleSendMatrixCommand(Socket client, int matrixSize) throws IOException {
+        int[][] matrix;
+        if (matrixSize <= 0) {
+            RequestHandler.sendMessage(client, "You need to send matrix size before matrix");
+            return null;
+        } else {
+            matrix = RequestHandler.getMatrix(client, matrixSize);
+            RequestHandler.sendMessage(client, "Matrix was filled");
+            return new MatrixRebuilder(matrixSize, matrix);
         }
     }
 

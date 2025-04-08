@@ -2,10 +2,12 @@ package org.example;
 
 import java.io.IOException;
 import java.net.Socket;
+import java.util.Random;
 import java.util.Scanner;
 
 public class Client {
     private Socket client;
+    private int[][] matrix;
     private int matrixSize;
     private int threadsAmount;
 
@@ -14,27 +16,49 @@ public class Client {
         System.out.println("Client was initialized");
     }
 
+    public void initializeMatrix(int matrixSize, int matrixMinValue, int matrixMaxValue) {
+        this.matrixSize = matrixSize;
+        this.matrix = new int[matrixSize][matrixSize];
+        Random random = new Random();
+        for (int i = 0; i < matrixSize; i++) {
+            for (int j = 0; j < matrixSize; j++) {
+                matrix[i][j] = random.nextInt(matrixMaxValue - matrixMinValue) + matrixMinValue;
+            }
+        }
+    }
+
     public void startUI() throws IOException {
-        Scanner scanner = new Scanner(System.in);
+        if (client == null) throw new IllegalStateException("Client is not initialized");
+
+        printAvailableCommands();
+
         boolean hasConnection = true;
+        Scanner scanner = new Scanner(System.in);
 
         while (hasConnection) {
             System.out.println("Enter command to server:");
-            String command = scanner.nextLine().trim().toLowerCase();
-            switch (command) {
+            String messageToServer = scanner.nextLine().trim().toLowerCase();
+            switch (messageToServer) {
                 case "send threads amount":
                     sendThreadsAmount(scanner);
                     break;
                 case "send matrix size":
                     sendMatrixSize(scanner);
                     break;
+                case "send matrix":
+                    sendMatrix();
+                    break;
                 case "end":
                     RequestHandler.sendMessage(client, "end");
                     hasConnection = false;
                     break;
+                case "help":
+                    printAvailableCommands();
+                    break;
                 default:
-                    RequestHandler.sendMessage(client, command);
+                    RequestHandler.sendMessage(client, messageToServer);
                     System.out.println("Response: " + RequestHandler.getMessage(client));
+                    break;
             }
         }
     }
@@ -64,6 +88,29 @@ public class Client {
         RequestHandler.sendIntValue(client, matrixSize);
         System.out.println("Client send matrix size");
         System.out.println("Response: " + RequestHandler.getMessage(client));
+        if (matrixSize > 0) {
+            initializeMatrix(matrixSize, 0, 1000);
+        }
+    }
+
+    private void sendMatrix() throws IOException {
+        if (matrixSize <= 0) {
+            System.out.println("You need to send a correct matrix size before");
+            return;
+        }
+        RequestHandler.sendMessage(client, "send matrix");
+        RequestHandler.sendMatrix(client, matrix);
+        System.out.println("Client send matrix");
+        System.out.println("Response: " + RequestHandler.getMessage(client));
+    }
+
+    private void printAvailableCommands() {
+        System.out.println("\nAvailable commands:");
+        System.out.println("  send threads amount - Set the number of threads");
+        System.out.println("  send matrix size     - Set the size of the matrix");
+        System.out.println("  send matrix          - Send generated matrix to server");
+        System.out.println("  end                  - Close connection");
+        System.out.println("  help                 - Show commands again\n");
     }
 
     public static void main(String[] args) {
